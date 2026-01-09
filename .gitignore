@@ -1,0 +1,4 @@
+.venv
+.vscode
+.anomaly_detection_results.csv
+.detected_anomalies_for_review.csv
