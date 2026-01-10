@@ -32,6 +32,16 @@ print(f"Dataset loaded: {df.shape[0]} rows, {df.shape[1]} columns")
 # ============================================================
 
 df["Is_Abnormal"] = 0
+
+# Map categorical columns to numeric first
+category_mapping = {"Low": 0.33, "Medium": 0.67, "High": 1.0}
+if "Crowd_Density" in df.columns:
+    df["Crowd_Density"] = df["Crowd_Density"].map(category_mapping)
+if "Stress_Level" in df.columns:
+    df["Stress_Level"] = df["Stress_Level"].map(category_mapping)
+if "Fatigue_Level" in df.columns:
+    df["Fatigue_Level"] = df["Fatigue_Level"].map(category_mapping)
+
 # Convert required columns to numeric safely
 cols = [
     "Movement_Speed", "Sound_Level_dB", "Crowd_Density",
@@ -76,7 +86,7 @@ features = [f for f in features if f in df.columns]
 
 X = df[features].copy()
 
-# Map categorical columns to numeric
+# Handle any remaining categorical columns
 category_mapping = {"Low": 0.33, "Medium": 0.67, "High": 1.0}
 for col in X.columns:
     if X[col].dtype == "object":
@@ -165,7 +175,84 @@ print("MEDIUM   → Monitor closely")
 print("LOW      → Routine observation")
 
 # ============================================================
-# STEP 8: EXPORT RESULTS
+# STEP 8: DECISION-FOCUSED VISUALIZATION
+# ============================================================
+
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(figsize=(10, 7))
+
+# Add small jitter to make overlapping points visible (Crowd_Density only has 3 values)
+np.random.seed(42)
+jitter_x = 0.02
+jitter_y = 0.5
+
+# Define color map and marker properties for incident levels
+incident_colors = {
+    "NORMAL": "green",
+    "LOW": "#FFD700",        # Gold
+    "MEDIUM": "#FFA500",     # Orange
+    "HIGH": "#FF6347",       # Tomato red
+    "CRITICAL": "#8B0000"    # Dark red
+}
+
+incident_sizes = {
+    "NORMAL": 20,
+    "LOW": 35,
+    "MEDIUM": 50,
+    "HIGH": 65,
+    "CRITICAL": 80
+}
+
+incident_alphas = {
+    "NORMAL": 0.3,
+    "LOW": 0.5,
+    "MEDIUM": 0.65,
+    "HIGH": 0.8,
+    "CRITICAL": 0.95
+}
+
+# Plot by incident level
+for incident_level in ["NORMAL", "LOW", "MEDIUM", "HIGH", "CRITICAL"]:
+    subset = df[df["Incident_Level"] == incident_level].copy()
+    if len(subset) > 0:
+        subset_x = subset["Crowd_Density"] + np.random.normal(0, jitter_x, len(subset))
+        subset_y = subset["Sound_Level_dB"] + np.random.normal(0, jitter_y, len(subset))
+        
+        ax.scatter(subset_x, subset_y,
+                   c=incident_colors[incident_level],
+                   alpha=incident_alphas[incident_level],
+                   s=incident_sizes[incident_level],
+                   label=f'{incident_level} ({len(subset)})',
+                   edgecolors='black' if incident_level != "NORMAL" else 'none',
+                   linewidth=1 if incident_level != "NORMAL" else 0)
+
+# Draw decision thresholds
+ax.axvline(x=0.9, color='blue', linestyle='--', linewidth=2, label='Density Threshold (0.9)', alpha=0.8)
+ax.axhline(y=85, color='purple', linestyle='--', linewidth=2, label='Sound Threshold (85 dB)', alpha=0.8)
+
+# Highlight critical zone (top-right quadrant)
+density_min, density_max = df["Crowd_Density"].min(), df["Crowd_Density"].max()
+sound_min, sound_max = df["Sound_Level_dB"].min(), df["Sound_Level_dB"].max()
+ax.fill_between([0.9, density_max + 0.05], 85, sound_max + 2, alpha=0.15, color='red', label='Critical Zone')
+
+ax.set_xlabel('Crowd Density (categorical: Low=0.33, Medium=0.67, High=1.0)', fontsize=11, fontweight='bold')
+ax.set_ylabel('Sound Level (dB)', fontsize=11, fontweight='bold')
+ax.set_title('Dispatch Decision Map: Incident Severity by Crowd Density & Sound Level', fontsize=14, fontweight='bold')
+ax.legend(loc='upper left', fontsize=10)
+ax.grid(True, alpha=0.2)
+
+# Dynamic axis limits with padding
+ax.set_xlim(density_min - 0.1, density_max + 0.1)
+ax.set_ylim(sound_min - 5, sound_max + 5)
+
+plt.tight_layout()
+plt.savefig('dispatch_decision_map.png', dpi=150, bbox_inches='tight')
+print("Decision map saved as 'dispatch_decision_map.png'")
+plt.close()
+
+# ============================================================
+# STEP 9: EXPORT RESULTS
 # ============================================================
 
 summary = pd.DataFrame({
