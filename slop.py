@@ -37,15 +37,11 @@ df["Is_Abnormal"] = 0
 category_mapping = {"Low": 0.33, "Medium": 0.67, "High": 1.0}
 if "Crowd_Density" in df.columns:
     df["Crowd_Density"] = df["Crowd_Density"].map(category_mapping)
-if "Stress_Level" in df.columns:
-    df["Stress_Level"] = df["Stress_Level"].map(category_mapping)
-if "Fatigue_Level" in df.columns:
-    df["Fatigue_Level"] = df["Fatigue_Level"].map(category_mapping)
 
 # Convert required columns to numeric safely
 cols = [
     "Movement_Speed", "Sound_Level_dB", "Crowd_Density",
-    "Distance_Between_People_m", "Queue_Time_minutes", "Stress_Level"
+    "Distance_Between_People_m", "Queue_Time_minutes"
 ]
 
 for col in cols:
@@ -75,9 +71,8 @@ print(f"Ground truth anomalies: {actual_anomaly_rate*100:.2f}%")
 features = [
     "Movement_Speed", "Sound_Level_dB", "Crowd_Density",
     "Distance_Between_People_m", "Queue_Time_minutes",
-    "Temperature", "Stress_Level", "Fatigue_Level",
+    "Temperature",
     "Waiting_Time_for_Transport",
-    "Security_Checkpoint_Wait_Time",
     "Interaction_Frequency",
     "Time_Spent_at_Location_minutes"
 ]
@@ -184,7 +179,7 @@ fig, ax = plt.subplots(figsize=(10, 7))
 
 # Add small jitter to make overlapping points visible (Crowd_Density only has 3 values)
 np.random.seed(42)
-jitter_x = 0.02
+jitter_x = 0.12
 jitter_y = 0.5
 
 # Define color map and marker properties for incident levels
